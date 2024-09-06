@@ -34,44 +34,45 @@ define('handleBack', [
 
 	function onBackClicked(isMarkedUnread) {
 		const highlightUnread = isMarkedUnread && ajaxify.data.template.unread;
-		if (
+		if (!(
 			ajaxify.data.template.category ||
 			ajaxify.data.template.recent ||
 			ajaxify.data.template.popular ||
 			highlightUnread
-		) {
-			let bookmarkIndex = storage.getItem('category:bookmark');
-			let clickedIndex = storage.getItem('category:bookmark:clicked');
+		)) {
+			return;
+		}
+		let bookmarkIndex = storage.getItem('category:bookmark');
+		let clickedIndex = storage.getItem('category:bookmark:clicked');
 
-			storage.removeItem('category:bookmark');
-			storage.removeItem('category:bookmark:clicked');
-			if (!utils.isNumber(bookmarkIndex)) {
+		storage.removeItem('category:bookmark');
+		storage.removeItem('category:bookmark:clicked');
+		if (!utils.isNumber(bookmarkIndex)) {
+			return;
+		}
+
+		bookmarkIndex = Math.max(0, parseInt(bookmarkIndex, 10) || 0);
+		clickedIndex = Math.max(0, parseInt(clickedIndex, 10) || 0);
+
+		if (config.usePagination) {
+			const page = Math.ceil((parseInt(bookmarkIndex, 10) + 1) / config.topicsPerPage);
+			if (parseInt(page, 10) !== ajaxify.data.pagination.currentPage) {
+				pagination.loadPage(page, function () {
+					handleBack.scrollToTopic(bookmarkIndex, clickedIndex);
+				});
+			} else {
+				handleBack.scrollToTopic(bookmarkIndex, clickedIndex);
+			}
+		} else {
+			if (bookmarkIndex === 0) {
+				handleBack.scrollToTopic(bookmarkIndex, clickedIndex);
 				return;
 			}
 
-			bookmarkIndex = Math.max(0, parseInt(bookmarkIndex, 10) || 0);
-			clickedIndex = Math.max(0, parseInt(clickedIndex, 10) || 0);
-
-			if (config.usePagination) {
-				const page = Math.ceil((parseInt(bookmarkIndex, 10) + 1) / config.topicsPerPage);
-				if (parseInt(page, 10) !== ajaxify.data.pagination.currentPage) {
-					pagination.loadPage(page, function () {
-						handleBack.scrollToTopic(bookmarkIndex, clickedIndex);
-					});
-				} else {
-					handleBack.scrollToTopic(bookmarkIndex, clickedIndex);
-				}
-			} else {
-				if (bookmarkIndex === 0) {
-					handleBack.scrollToTopic(bookmarkIndex, clickedIndex);
-					return;
-				}
-
-				$('[component="category"]').empty();
-				loadTopicsMethod(Math.max(0, bookmarkIndex - 1) + 1, function () {
-					handleBack.scrollToTopic(bookmarkIndex, clickedIndex);
-				});
-			}
+			$('[component="category"]').empty();
+			loadTopicsMethod(Math.max(0, bookmarkIndex - 1) + 1, function () {
+				handleBack.scrollToTopic(bookmarkIndex, clickedIndex);
+			});
 		}
 	}
 
